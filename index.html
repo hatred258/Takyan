@@ -1,563 +1,558 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sipa Game - Retro Edition</title>
-    <style>
-/* --- General Retro Setup --- */
-* {
-    image-rendering: pixelated; /* Sharpens images if they were used */
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
-}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sipa Game - Retro Arcade Edition</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    /* --- General Retro Setup --- */
+    * {
+      image-rendering: pixelated; /* Sharpens images if they were used */
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+      box-sizing: border-box;
+    }
 
-/* --- Animations --- */
-@keyframes walk-left-leg {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(20deg); }
-}
-@keyframes walk-right-leg {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(-20deg); }
-}
-@keyframes kick-left-leg {
-  0% { transform: rotate(0deg); }
-  50% { transform: rotate(-60deg); }
-  100% { transform: rotate(0deg); }
-}
-@keyframes kick-right-leg {
-  0% { transform: rotate(0deg); }
-  50% { transform: rotate(60deg); }
-  100% { transform: rotate(0deg); }
-}
-@keyframes cloud-move {
-  from { transform: translateX(110vw); }
-  to { transform: translateX(-20vw); }
-}
-@keyframes sipa-flash {
-  0%, 49% { background-color: #FACD5A; }
-  50%, 100% { background-color: #FFFFFF; }
-}
-@keyframes sipa-roll {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
+    /* --- Animations --- */
+    @keyframes walk-left-leg { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(20deg); } }
+    @keyframes walk-right-leg { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-20deg); } }
+    @keyframes kick-left-leg { 0% { transform: rotate(0deg); } 50% { transform: rotate(-60deg); } 100% { transform: rotate(0deg); } }
+    @keyframes kick-right-leg { 0% { transform: rotate(0deg); } 50% { transform: rotate(60deg); } 100% { transform: rotate(0deg); } }
+    @keyframes cloud-move { from { transform: translateX(110vw); } to { transform: translateX(-20vw); } }
+    @keyframes sipa-flash { 0%, 49% { background-color: #FACD5A; } 50%, 100% { background-color: #FFFFFF; } }
+    @keyframes sipa-roll { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-/* --- Layout --- */
-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
-  background: #212121; /* Dark grey like an old TV bezel */
-  font-family: 'Press Start 2P', cursive;
-  overflow: hidden;
-  position: relative;
-}
-#game-container {
-  width: 80vw;
-  height: 80vh;
-  max-width: 800px;
-  max-height: 600px;
-  background: #5C94FC; /* Classic sky blue */
-  border: 10px solid #000000;
-  box-shadow: 0 0 0 5px #444;
-  position: relative;
-  overflow: hidden;
-  z-index: 10;
-}
+    /* NEW: flicker, glow, crt, blink */
+    @keyframes sun-flicker { 0%,100% { background-color:#FACD5A; } 50% { background-color:#FFD97B; } }
+    @keyframes box-glow { 0% { box-shadow: 8px 8px #000, 0 0 10px #FACD5A; } 100% { box-shadow: 8px 8px #000, 0 0 20px #FFD97B; } }
+    @keyframes blink-text { 0%,50% { opacity:1; } 51%,100% { opacity:.4; } }
 
-/* --- Ground (was Road) --- */
-#road {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 25%;
-  background-color: #E47E38; /* Terracotta/brick color */
-  background-image:
-    linear-gradient(rgba(0,0,0,0.2) 2px, transparent 2px),
-    linear-gradient(90deg, rgba(0,0,0,0.2) 2px, transparent 2px);
-  background-size: 40px 40px;
-  border-top: 4px solid #000;
-  z-index: 11;
-}
-#road-lines { display: none; } /* No more modern road lines */
+    /* --- Layout --- */
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: #212121; /* Dark grey like an old TV bezel */
+      font-family: 'Press Start 2P', cursive;
+      overflow: hidden;
+      position: relative;
+    }
+    #game-container {
+      width: 80vw;
+      height: 80vh;
+      max-width: 800px;
+      max-height: 600px;
+      background: #5C94FC; /* Classic sky blue */
+      border: 10px solid #000000;
+      box-shadow: 0 0 0 5px #444, inset 0 0 50px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+      z-index: 10;
+    }
+    /* CRT Scanlines Overlay */
+    #game-container::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.12) 0px,
+        rgba(0,0,0,0.12) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
 
-/* --- Sun --- */
-.sun {
-  position: absolute;
-  top: 40px;
-  right: 40px;
-  width: 60px;
-  height: 60px;
-  background-color: #FACD5A;
-  border: 4px solid #000;
-  z-index: 1;
-}
+    /* --- Ground (was Road) --- */
+    #road {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 25%;
+      background-color: #E47E38; /* Terracotta/brick color */
+      background-image:
+        linear-gradient(rgba(0,0,0,0.2) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(0,0,0,0.2) 2px, transparent 2px);
+      background-size: 40px 40px;
+      border-top: 4px solid #000;
+      z-index: 11;
+    }
+    #road-lines { display: none; }
 
-/* --- Clouds --- */
-.cloud {
-  position: absolute;
-  background: #FFFFFF;
-  border: 4px solid #000;
-  width: 80px;
-  height: 40px;
-  animation: cloud-move 30s linear infinite;
-  z-index: 2;
-  box-shadow:
-    /* Manually creating pixel cloud shapes */
-    -20px 20px 0 0 #FFFFFF,
-    -24px 20px 0 0 #000,
-    20px 20px 0 0 #FFFFFF,
-    24px 20px 0 0 #000,
-    -40px 0 0 0 #FFFFFF,
-    -44px 0 0 0 #000;
-}
-.cloud:nth-child(1) { top: 15%; animation-duration: 35s; animation-delay: -5s; }
-.cloud:nth-child(2) { top: 25%; animation-duration: 45s; animation-delay: -20s; width: 120px; }
-.cloud:nth-child(3) { top: 8%; animation-duration: 25s; animation-delay: -10s; }
+    /* --- Sun --- */
+    .sun {
+      position: absolute;
+      top: 40px;
+      right: 40px;
+      width: 60px;
+      height: 60px;
+      background-color: #FACD5A;
+      border: 4px solid #000;
+      z-index: 1;
+      animation: sun-flicker 1.5s infinite;
+      box-shadow: 0 0 10px #FACD5A, 0 0 20px #FACD5A;
+    }
 
-/* --- Hills (was Houses) --- */
-.house {
-  position: absolute;
-  bottom: 25%;
-  width: 200px;
-  height: 100px;
-  background: #00A542; /* Classic green hill color */
-  border: 4px solid #000;
-  border-radius: 50% 50% 0 0 / 100% 100% 0 0; /* Rounded hill top */
-  z-index: 12;
-}
-.house::before { display: none; } /* Remove old roof */
-#house-1 { left: 10%; width: 250px; height: 120px; }
-#house-2 { left: 60%; width: 180px; height: 80px; }
-#house-3 { right: -5%; width: 220px; height: 110px; }
+    /* --- Clouds --- */
+    .cloud {
+      position: absolute;
+      background: #FFFFFF;
+      border: 4px solid #000;
+      width: 80px;
+      height: 40px;
+      animation: cloud-move 30s linear infinite;
+      z-index: 2;
+      box-shadow:
+        -20px 20px 0 0 #FFFFFF,
+        -24px 20px 0 0 #000,
+        20px 20px 0 0 #FFFFFF,
+        24px 20px 0 0 #000,
+        -40px 0 0 0 #FFFFFF,
+        -44px 0 0 0 #000;
+    }
+    .cloud:nth-child(1) { top: 15%; animation-duration: 35s; animation-delay: -5s; }
+    .cloud:nth-child(2) { top: 25%; animation-duration: 45s; animation-delay: -20s; width: 120px; }
+    .cloud:nth-child(3) { top: 8%;  animation-duration: 25s; animation-delay: -10s; }
 
-/* --- Trees --- */
-.tree {
-  position: absolute;
-  bottom: 25%;
-  width: 50px;
-  height: 100%;
-  z-index: 12;
-}
-.tree::before { /* Trunk */
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 30%;
-  background-color: #A0522D; /* Brown */
-  border: 4px solid #000;
-  border-top: none;
-}
-.tree::after { /* Leaves */
-  content: '';
-  position: absolute;
-  bottom: 30%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100px;
-  height: 100px;
-  background-color: #00A542;
-  border: 4px solid #000;
-  border-radius: 50%;
-}
-#tree-1 { left: 5%; }
-#tree-2 { left: 45%; }
-#tree-3 { right: 5%; }
+    /* --- Hills (was Houses) --- */
+    .house {
+      position: absolute;
+      bottom: 25%;
+      width: 200px;
+      height: 100px;
+      background: #00A542; /* Classic green hill color */
+      border: 4px solid #000;
+      border-radius: 50% 50% 0 0 / 100% 100% 0 0; /* Rounded hill top */
+      z-index: 12;
+    }
+    .house::before { display: none; }
+    #house-1 { left: 10%; width: 250px; height: 120px; }
+    #house-2 { left: 60%; width: 180px; height: 80px; }
+    #house-3 { right: -5%; width: 220px; height: 110px; }
 
-/* --- Player --- */
-#player {
-    position: absolute;
-    z-index: 100;
-    width: 36px;
-    height: 60px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: default;
-}
-#player .head {
-    width: 28px;
-    height: 28px;
-    background-color: #FFC0CB; /* Skin color */
-    border: 4px solid #000;
-    position: relative;
-    z-index: 1;
-    box-shadow: /* Eyes */
+    /* --- Trees --- */
+    .tree {
+      position: absolute;
+      bottom: 25%;
+      width: 50px;
+      height: 100%;
+      z-index: 12;
+    }
+    .tree::before { /* Trunk */
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 30%;
+      background-color: #A0522D; /* Brown */
+      border: 4px solid #000;
+      border-top: none;
+    }
+    .tree::after { /* Leaves */
+      content: '';
+      position: absolute;
+      bottom: 30%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 100px;
+      background-color: #00A542;
+      border: 4px solid #000;
+      border-radius: 50%;
+    }
+    #tree-1 { left: 5%; }
+    #tree-2 { left: 45%; }
+    #tree-3 { right: 5%; }
+
+    /* --- Player --- */
+    #player {
+      position: absolute;
+      z-index: 100;
+      width: 36px;
+      height: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: default;
+      filter: drop-shadow(4px 4px 0 #000);
+    }
+    #player .head {
+      width: 28px;
+      height: 28px;
+      background-color: #FFC0CB; /* Skin color */
+      border: 4px solid #000;
+      position: relative;
+      z-index: 1;
+      box-shadow: /* Eyes */
         8px 12px #000,
         16px 12px #000;
-}
-#player .head .face { display: none; }
-#player .torso {
-    position: relative;
-    width: 36px;
-    height: 24px;
-    background: #F00; /* Red shirt */
-    border: 4px solid #000;
-    border-top: none;
-    z-index: 0;
-}
-#player .torso .arm {
-    position: absolute;
-    width: 8px;
-    height: 18px;
-    background: #FFC0CB; /* Skin color */
-    border: 4px solid #000;
-    top: 0;
-    z-index: -1;
-}
-#player .torso .arm.left { left: -16px; }
-#player .torso .arm.right { right: -16px; }
-#player .legs {
-    display: flex;
-    position: relative;
-    width: 100%;
-    height: 12px;
-}
-#player .legs .leg {
-    width: 14px;
-    height: 12px;
-    background: #00F; /* Blue pants */
-    border: 4px solid #000;
-    position: relative;
-    transform-origin: top;
-}
-.walk-left { animation: walk-left-leg 0.4s steps(2, end) infinite; }
-.walk-right { animation: walk-right-leg 0.4s steps(2, end) infinite; }
-.kick-left { animation: kick-left-leg 0.1s forwards; }
-.kick-right { animation: kick-right-leg 0.1s forwards; }
+    }
+    #player .head .face { display: none; }
+    #player .torso {
+      position: relative;
+      width: 36px;
+      height: 24px;
+      background: #E53935; /* Brighter red */
+      border: 4px solid #000;
+      border-top: none;
+      z-index: 0;
+    }
+    #player .torso .arm {
+      position: absolute;
+      width: 8px;
+      height: 18px;
+      background: #FFC0CB; /* Skin color */
+      border: 4px solid #000;
+      top: 0;
+      z-index: -1;
+    }
+    #player .torso .arm.left { left: -16px; }
+    #player .torso .arm.right { right: -16px; }
+    #player .legs { display: flex; position: relative; width: 100%; height: 12px; }
+    #player .legs .leg {
+      width: 14px;
+      height: 12px;
+      background: #1565C0; /* Bright blue pants */
+      border: 4px solid #000;
+      position: relative;
+      transform-origin: top;
+    }
+    .walk-left { animation: walk-left-leg 0.4s steps(2, end) infinite; }
+    .walk-right { animation: walk-right-leg 0.4s steps(2, end) infinite; }
+    .kick-left { animation: kick-left-leg 0.1s forwards; }
+    .kick-right { animation: kick-right-leg 0.1s forwards; }
 
-/* --- Sipa Ball --- */
-#sipa {
-  width: 24px;
-  height: 24px;
-  border: 4px solid #000;
-  position: absolute;
-  z-index: 106;
-  animation: sipa-flash 0.2s steps(1, end) infinite;
-}
-#sipa.rolling {
-    /* Apply rotation and stop the flashing */
-    animation: sipa-roll 0.4s linear infinite;
-}
+    /* --- Sipa Ball --- */
+    #sipa {
+      width: 24px;
+      height: 24px;
+      border: 4px solid #000;
+      position: absolute;
+      z-index: 106;
+      animation: sipa-flash 0.2s steps(1, end) infinite;
+      background-color: #FFF176; /* Pixel glow */
+      box-shadow: 0 0 6px #FFD54F;
+    }
+    #sipa.rolling { animation: sipa-roll 0.4s linear infinite; }
 
-/* --- UI --- */
-#message-box {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: #000;
-  color: #FFFFFF;
-  padding: 24px;
-  border: 4px solid #FFFFFF;
-  display: none;
-  z-index: 102;
-  font-size: 1rem;
-  text-align: center;
-  user-select: none;
-}
-#message-box h1 {
-    font-size: 1.5rem;
-    color: #FACD5A;
-}
-#message-box p {
-    line-height: 1.5;
-}
-#message-box button {
-    background: #444;
-    border: 2px solid #fff;
-    color: #fff;
-    padding: 10px 20px;
-    font-family: inherit;
-    cursor: pointer;
-    margin-top: 20px;
-    transition: all 0.1s;
-}
-#message-box button:hover {
-    background: #fff;
-    color: #000;
-}
-#score-display {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  color: #fff;
-  font-size: 1.5rem;
-  z-index: 103;
-  user-select: none;
-  text-shadow: 4px 4px 0 #000;
-}
-</style>
+    /* --- UI --- */
+    #message-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #111;
+      color: #FFFFFF;
+      padding: 24px;
+      border: 4px solid #FACD5A;
+      display: none;
+      z-index: 102;
+      font-size: 1rem;
+      text-align: center;
+      user-select: none;
+      box-shadow: 8px 8px #000;
+      animation: box-glow 1.2s infinite alternate;
+    }
+    #message-box h1 { font-size: 1.5rem; color: #FACD5A; animation: blink-text .8s infinite; }
+    #message-box p { line-height: 1.6; }
+    #message-box button {
+      background: #222;
+      border: 4px solid #fff;
+      color: #fff;
+      padding: 12px 18px;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: transform .06s;
+      box-shadow: 4px 4px 0 #000;
+    }
+    #message-box button:hover { transform: translate(-1px, -1px); }
+    #message-box button:active { transform: translate(1px, 1px); }
+
+    #score-display {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: #fff;
+      font-size: 1.1rem;
+      z-index: 103;
+      user-select: none;
+      text-shadow: 4px 4px 0 #000;
+      background: #000;
+      border: 4px solid #FACD5A;
+      padding: 8px 10px;
+      box-shadow: 4px 4px #000;
+    }
+  </style>
 </head>
 <body>
-<div id="game-container">
+  <div id="game-container">
     <div class="sun"></div>
     <div class="cloud"></div>
     <div class="cloud"></div>
     <div class="cloud"></div>
+
     <div class="house" id="house-1"></div>
     <div class="house" id="house-2"></div>
     <div class="house" id="house-3"></div>
+
     <div id="road"><div id="road-lines"></div></div>
     <div class="tree" id="tree-1"></div>
     <div class="tree" id="tree-2"></div>
     <div class="tree" id="tree-3"></div>
-    
+
     <div id="player">
-        <div class="head">
-            <div class="face"></div>
-        </div>
-        <div class="torso">
-            <div class="arm left"></div>
-            <div class="arm right"></div>
-        </div>
-        <div class="legs">
-            <div class="leg left"></div>
-            <div class="leg right"></div>
-        </div>
+      <div class="head"><div class="face"></div></div>
+      <div class="torso">
+        <div class="arm left"></div>
+        <div class="arm right"></div>
+      </div>
+      <div class="legs">
+        <div class="leg left"></div>
+        <div class="leg right"></div>
+      </div>
     </div>
-    
+
     <div id="sipa"></div>
     <div id="message-box"></div>
     <div id="score-display">Score: 0</div>
-</div>
+  </div>
 
-<script>
-const gameContainer = document.getElementById('game-container');
-const player = document.getElementById('player');
-const legs = player.querySelectorAll('.leg');
-const sipa = document.getElementById('sipa');
-const messageBox = document.getElementById('message-box');
-const scoreDisplay = document.getElementById('score-display');
-const road = document.getElementById('road');
+  <script>
+    const gameContainer = document.getElementById('game-container');
+    const player = document.getElementById('player');
+    const legs = player.querySelectorAll('.leg');
+    const sipa = document.getElementById('sipa');
+    const messageBox = document.getElementById('message-box');
+    const scoreDisplay = document.getElementById('score-display');
+    const road = document.getElementById('road');
 
-let playerX = 0, playerY = 0, velocityY = 0;
-let sipaX = 0, sipaY = 0, sipaDX = 3, sipaDY = 0;
-let score = 0, isGameOver = false, isBallInPlay = false;
-let scoringLock = false;
-let isKicking = false;
-const keys = {};
-const playerSpeed = 5, JUMP_FORCE = -12, GRAVITY_FORCE = 0.6;
+    let playerX = 0, playerY = 0, velocityY = 0;
+    let sipaX = 0, sipaY = 0, sipaDX = 3, sipaDY = 0;
+    let score = 0, isGameOver = false, isBallInPlay = false;
+    let scoringLock = false;
+    let isKicking = false;
+    const keys = {};
+    const playerSpeed = 5, JUMP_FORCE = -12, GRAVITY_FORCE = 0.6;
 
-const GRAVITY = 0.3;        
-const BASE_KICK_POWER = -15;  
-const RUNNING_KICK_BONUS = -4;
-const HORIZONTAL_KICK_BOOST = 0.4; 
-const FRICTION = 0.995;
+    const GRAVITY = 0.3;        
+    const BASE_KICK_POWER = -15;  
+    const RUNNING_KICK_BONUS = -4;
+    const HORIZONTAL_KICK_BOOST = 0.4; 
+    const FRICTION = 0.995;
 
-let GROUND_Y;
+    let GROUND_Y;
 
-function updateGroundY() {
-  const ch = gameContainer.offsetHeight;
-  const ph = player.offsetHeight;
-  const roadHeight = road.offsetHeight;
-  GROUND_Y = ch - ph - (roadHeight / 4) + 10;
-}
-
-window.addEventListener('resize', updateGroundY);
-
-window.onload = () => {
-    updateGroundY();
-    playerX = gameContainer.offsetWidth / 2 - player.offsetWidth / 2;
-    playerY = GROUND_Y;
-    player.style.transform = `translate(${playerX}px, ${playerY}px)`;
-    messageBox.style.display = 'flex';
-    messageBox.innerHTML = `<h1>Sipa Game</h1><p>Arrows or A/D to move.</p><p>Spacebar or W to kick!</p><button>Start</button>`;
-    updateScoreDisplay();
-    gameLoop(); // Start the game loop on load
-};
-
-function updatePlayerPosition() {
-  const cw = gameContainer.offsetWidth, pw = player.offsetWidth;
-
-  let moving = false;
-  if (keys['ArrowLeft'] || keys['a']) { playerX -= playerSpeed; moving = true; }
-  if (keys['ArrowRight'] || keys['d']) { playerX += playerSpeed; moving = true; }
-
-  legs.forEach(leg => {
-    leg.classList.remove('walk-left', 'walk-right');
-    if (isKicking) return;
-  });
-
-  if (moving && playerY === GROUND_Y) {
-    legs[0].classList.add('walk-left');
-    legs[1].classList.add('walk-right');
-  }
-
-  velocityY += GRAVITY_FORCE;
-  playerY += velocityY;
-  if (playerY >= GROUND_Y) { playerY = GROUND_Y; velocityY = 0; }
-  playerX = Math.max(0, Math.min(playerX, cw - pw));
-  player.style.transform = `translate(${playerX}px, ${playerY}px)`;
-}
-
-function updateSipaPosition() {
-  const cw = gameContainer.offsetWidth, ch = gameContainer.offsetHeight;
-  const sw = sipa.offsetWidth, sh = sipa.offsetHeight;
-
-  if (isBallInPlay) {
-    sipaDY += GRAVITY;
-    sipaX += sipaDX;
-    sipaY += sipaDY;
-
-    if (sipaX + sw > cw || sipaX < 0) sipaDX *= -1;
-    if (sipaY < 0) {
-      sipaY = 0;
-      sipaDY *= -0.5;
+    function updateGroundY() {
+      const ch = gameContainer.offsetHeight;
+      const ph = player.offsetHeight;
+      const roadHeight = road.offsetHeight;
+      GROUND_Y = ch - ph - (roadHeight / 4) + 10;
     }
-    if (sipaY + sh > ch) {
-      // Ground hit logic
-      sipaY = ch - sh;
-      sipaDY = 0;
-      sipaDX *= 0.6; // Lose some horizontal momentum on impact
-      endGame();
-    }
-  } else if (!isGameOver) {
-    sipaX = playerX + (player.offsetWidth / 2) - (sipa.offsetWidth / 2);
-    sipaY = playerY + player.offsetHeight - sipa.offsetHeight - 5;
-  }
-  sipa.style.transform = `translate(${sipaX}px, ${sipaY}px)`;
-}
 
-function updateRollingSipa() {
-    const cw = gameContainer.offsetWidth, sw = sipa.offsetWidth;
-    if (Math.abs(sipaDX) > 0.1) {
+    window.addEventListener('resize', updateGroundY);
+
+    window.onload = () => {
+      updateGroundY();
+      playerX = gameContainer.offsetWidth / 2 - player.offsetWidth / 2;
+      playerY = GROUND_Y;
+      player.style.transform = `translate(${playerX}px, ${playerY}px)`;
+      messageBox.style.display = 'flex';
+      messageBox.innerHTML = `<h1>PRESS START</h1><p>Arrows or A/D to move.</p><p>Spacebar or W to kick!</p><button>Start</button>`;
+      updateScoreDisplay();
+      gameLoop(); // Start the game loop on load
+    };
+
+    function updatePlayerPosition() {
+      const cw = gameContainer.offsetWidth, pw = player.offsetWidth;
+
+      let moving = false;
+      if (keys['ArrowLeft'] || keys['a']) { playerX -= playerSpeed; moving = true; }
+      if (keys['ArrowRight'] || keys['d']) { playerX += playerSpeed; moving = true; }
+
+      legs.forEach(leg => {
+        leg.classList.remove('walk-left', 'walk-right');
+        if (isKicking) return;
+      });
+
+      if (moving && playerY === GROUND_Y) {
+        legs[0].classList.add('walk-left');
+        legs[1].classList.add('walk-right');
+      }
+
+      velocityY += GRAVITY_FORCE;
+      playerY += velocityY;
+      if (playerY >= GROUND_Y) { playerY = GROUND_Y; velocityY = 0; }
+      playerX = Math.max(0, Math.min(playerX, cw - pw));
+      player.style.transform = `translate(${playerX}px, ${playerY}px)`;
+    }
+
+    function updateSipaPosition() {
+      const cw = gameContainer.offsetWidth, ch = gameContainer.offsetHeight;
+      const sw = sipa.offsetWidth, sh = sipa.offsetHeight;
+
+      if (isBallInPlay) {
+        sipaDY += GRAVITY;
+        sipaX += sipaDX;
+        sipaY += sipaDY;
+
+        if (sipaX + sw > cw || sipaX < 0) sipaDX *= -1;
+        if (sipaY < 0) {
+          sipaY = 0;
+          sipaDY *= -0.5;
+        }
+        if (sipaY + sh > ch) {
+          // Ground hit logic
+          sipaY = ch - sh;
+          sipaDY = 0;
+          sipaDX *= 0.6; // Lose some horizontal momentum on impact
+          endGame();
+        }
+      } else if (!isGameOver) {
+        sipaX = playerX + (player.offsetWidth / 2) - (sipa.offsetWidth / 2);
+        sipaY = playerY + player.offsetHeight - sipa.offsetHeight - 5;
+      }
+      sipa.style.transform = `translate(${sipaX}px, ${sipaY}px)`;
+    }
+
+    function updateRollingSipa() {
+      const cw = gameContainer.offsetWidth, sw = sipa.offsetWidth;
+      if (Math.abs(sipaDX) > 0.1) {
         sipaDX *= FRICTION;
         sipaX += sipaDX;
 
         // Wall bounce while rolling
         if (sipaX + sw > cw) {
-            sipaX = cw - sw;
-            sipaDX *= -0.8;
+          sipaX = cw - sw;
+          sipaDX *= -0.8;
         } else if (sipaX < 0) {
-            sipaX = 0;
-            sipaDX *= -0.8;
+          sipaX = 0;
+          sipaDX *= -0.8;
         }
-    } else {
+      } else {
         sipaDX = 0;
         sipa.classList.remove('rolling');
+      }
+      sipa.style.transform = `translate(${sipaX}px, ${sipaY}px)`;
     }
-    sipa.style.transform = `translate(${sipaX}px, ${sipaY}px)`;
-}
 
-function checkCollision() {
-  if (!isBallInPlay || scoringLock) return;
-  
-  const pr = player.getBoundingClientRect(), sr = sipa.getBoundingClientRect();
-  const gameRect = gameContainer.getBoundingClientRect();
+    function checkCollision() {
+      if (!isBallInPlay || scoringLock) return;
+      
+      const pr = player.getBoundingClientRect(), sr = sipa.getBoundingClientRect();
+      const gameRect = gameContainer.getBoundingClientRect();
 
-  const prAdjusted = { x: pr.x - gameRect.x, y: pr.y - gameRect.y, width: pr.width, height: pr.height };
-  const srAdjusted = { x: sr.x - gameRect.x, y: sr.y - gameRect.y, width: sr.width, height: sr.height };
+      const prAdjusted = { x: pr.x - gameRect.x, y: pr.y - gameRect.y, width: pr.width, height: pr.height };
+      const srAdjusted = { x: sr.x - gameRect.x, y: sr.y - gameRect.y, width: sr.width, height: sr.height };
 
-  if (prAdjusted.x < srAdjusted.x + srAdjusted.width &&
-      prAdjusted.x + prAdjusted.width > srAdjusted.x &&
-      prAdjusted.y < srAdjusted.y + srAdjusted.height &&
-      prAdjusted.y + prAdjusted.height > srAdjusted.y) {
-    
-    if (isKicking) {
-        scoringLock = true;
-        let movingHorizontally = keys['ArrowLeft'] || keys['a'] || keys['ArrowRight'] || keys['d'];
-        sipaDY = BASE_KICK_POWER + (movingHorizontally ? RUNNING_KICK_BONUS : 0);
+      if (prAdjusted.x < srAdjusted.x + srAdjusted.width &&
+          prAdjusted.x + prAdjusted.width > srAdjusted.x &&
+          prAdjusted.y < srAdjusted.y + srAdjusted.height &&
+          prAdjusted.y + prAdjusted.height > srAdjusted.y) {
         
-        let kickDirection = 0;
-        if (keys['ArrowLeft'] || keys['a']) kickDirection = -HORIZONTAL_KICK_BOOST;
-        if (keys['ArrowRight'] || keys['d']) kickDirection = HORIZONTAL_KICK_BOOST;
-        sipaDX += kickDirection;
+        if (isKicking) {
+          scoringLock = true;
+          let movingHorizontally = keys['ArrowLeft'] || keys['a'] || keys['ArrowRight'] || keys['d'];
+          sipaDY = BASE_KICK_POWER + (movingHorizontally ? RUNNING_KICK_BONUS : 0);
+          
+          let kickDirection = 0;
+          if (keys['ArrowLeft'] || keys['a']) kickDirection = -HORIZONTAL_KICK_BOOST;
+          if (keys['ArrowRight'] || keys['d']) kickDirection = HORIZONTAL_KICK_BOOST;
+          sipaDX += kickDirection;
 
-        score++;
-        updateScoreDisplay();
-        setTimeout(() => { scoringLock = false; }, 200);
+          score++;
+          updateScoreDisplay();
+          setTimeout(() => { scoringLock = false; }, 200);
+        }
+      }
     }
-  }
-}
 
-function serveBall() {
-  isBallInPlay = true;
-  sipaDY = BASE_KICK_POWER;
-}
+    function serveBall() {
+      isBallInPlay = true;
+      sipaDY = BASE_KICK_POWER;
+    }
 
-function updateScoreDisplay() { 
-  scoreDisplay.textContent = `Score: ${score}`; 
-}
+    function updateScoreDisplay() { 
+      scoreDisplay.textContent = `Score: ${score}`; 
+    }
 
-function endGame() {
-  if (isGameOver) return;
-  isGameOver = true;
-  isBallInPlay = false;
-  player.style.display = 'none';
-  messageBox.style.display = 'flex';
-  messageBox.innerHTML = `<h1>Game Over</h1><p>Your Score: ${score}</p><button>Play Again</button>`;
-  sipa.classList.add('rolling');
-}
+    function endGame() {
+      if (isGameOver) return;
+      isGameOver = true;
+      isBallInPlay = false;
+      player.style.display = 'none';
+      messageBox.style.display = 'flex';
+      messageBox.innerHTML = `<h1>GAME OVER</h1><p>Your Score: ${score}</p><button>Play Again</button>`;
+      sipa.classList.add('rolling');
+    }
 
-function gameLoop() {
-    if (!isGameOver) {
+    function gameLoop() {
+      if (!isGameOver) {
         updatePlayerPosition();
         updateSipaPosition();
         checkCollision();
-    } else {
+      } else {
         updateRollingSipa();
+      }
+      requestAnimationFrame(gameLoop);
     }
-    requestAnimationFrame(gameLoop);
-}
 
-function startGame() {
-  if (!isGameOver && isBallInPlay) return;
-  
-  sipa.classList.remove('rolling');
-  messageBox.style.display = 'none';
-  score = 0;
-  isGameOver = false;
-  isBallInPlay = false;
-  scoringLock = false;
-  isKicking = false;
-  player.style.display = 'flex';
-  sipa.style.display = 'block';
+    function startGame() {
+      if (!isGameOver && isBallInPlay) return;
+      
+      sipa.classList.remove('rolling');
+      messageBox.style.display = 'none';
+      score = 0;
+      isGameOver = false;
+      isBallInPlay = false;
+      scoringLock = false;
+      isKicking = false;
+      player.style.display = 'flex';
+      sipa.style.display = 'block';
 
-  playerX = gameContainer.offsetWidth / 2 - player.offsetWidth / 2;
-  playerY = GROUND_Y;
-  player.style.transform = `translate(${playerX}px, ${playerY}px)`;
-  sipaDX = Math.random() > 0.5 ? 3 : -3;
+      playerX = gameContainer.offsetWidth / 2 - player.offsetWidth / 2;
+      playerY = GROUND_Y;
+      player.style.transform = `translate(${playerX}px, ${playerY}px)`;
+      sipaDX = Math.random() > 0.5 ? 3 : -3;
 
-  updateScoreDisplay();
-}
+      updateScoreDisplay();
+    }
 
-messageBox.addEventListener('click', e => {
-  if (e.target.tagName === 'BUTTON') {
-    startGame();
-  }
-});
+    messageBox.addEventListener('click', e => {
+      if (e.target.tagName === 'BUTTON') {
+        startGame();
+      }
+    });
 
-window.addEventListener('keydown', e => {
-    const key = e.key.toLowerCase();
-    keys[key] = true;
-    keys[e.key] = true; 
+    window.addEventListener('keydown', e => {
+      const key = e.key.toLowerCase();
+      keys[key] = true;
+      keys[e.key] = true; 
 
-    if ((key === ' ' || key === 'w') && playerY >= GROUND_Y && !isGameOver && !isKicking) {
+      if ((key === ' ' || key === 'w') && playerY >= GROUND_Y && !isGameOver && !isKicking) {
         isKicking = true;
         if (!isBallInPlay) {
-            serveBall();
+          serveBall();
         }
         legs.forEach(leg => leg.classList.add(leg.classList.contains('left') ? 'kick-left' : 'kick-right'));
         setTimeout(() => {
-            legs.forEach(leg => leg.classList.remove('kick-left', 'kick-right'));
-            isKicking = false;
+          legs.forEach(leg => leg.classList.remove('kick-left', 'kick-right'));
+          isKicking = false;
         }, 100);
-    }
-});
-window.addEventListener('keyup', e => {
-    const key = e.key.toLowerCase();
-    keys[key] = false;
-    keys[e.key] = false;
-});
-</script>
+      }
+    });
+    window.addEventListener('keyup', e => {
+      const key = e.key.toLowerCase();
+      keys[key] = false;
+      keys[e.key] = false;
+    });
+  </script>
 </body>
 </html>
